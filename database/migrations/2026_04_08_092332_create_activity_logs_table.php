@@ -15,7 +15,8 @@ return new class extends Migration
             $table->id();
             // Qui a fait l'action
             $table->foreignId('user_id')->nullable()->constrained()->nullOnDelete();
-
+            $table->foreignId('tenant_id')->nullable()->constrained()->nullOnDelete();
+            $table->foreignId('branch_id')->nullable()->constrained()->nullOnDelete();
             // Action structurée pour UI (couleurs) + filtrage
             $table->string('action');   // create, update, view, delete, error...
             $table->enum('color', ['success', 'primary', 'info', 'warning', 'danger'])->default('info'); // success, info, warning, error
@@ -45,7 +46,6 @@ return new class extends Migration
 
             // Contexte request
             $table->string('method')->nullable();     // GET, POST...
-            $table->string('url')->nullable();
             $table->string('route')->nullable();
 
             // Résultat / erreurs
@@ -55,6 +55,7 @@ return new class extends Migration
             $table->json('metadata')->nullable();
 
             $table->timestamps();
+            $table->softDeletes();
 
             $table->index(['entity_type', 'entity_id']);
             $table->index(['user_id', 'created_at']);

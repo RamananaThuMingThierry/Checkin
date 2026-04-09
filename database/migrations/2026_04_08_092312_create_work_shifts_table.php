@@ -17,6 +17,7 @@ return new class extends Migration
             $table->foreignId('branch_id')->nullable()->constrained()->nullOnDelete();
 
             $table->string('name');
+            $table->string('code');
             $table->time('start_time');
             $table->time('end_time');
             $table->unsignedInteger('break_duration_minutes')->default(0);
@@ -25,6 +26,7 @@ return new class extends Migration
 
             $table->timestamps();
 
+            $table->unique(['tenant_id', 'code']);
             $table->index(['tenant_id', 'branch_id']);
         });
     }

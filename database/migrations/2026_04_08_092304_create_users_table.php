@@ -19,13 +19,14 @@ return new class extends Migration
             $table->string('password');
             $table->foreignId('tenant_id')->nullable()->constrained()->nullOnDelete();
             $table->foreignId('branch_id')->nullable()->constrained()->nullOnDelete();
-
+            $table->boolean('is_super_admin')->default(false);
             $table->enum('status', ['active', 'inactive', 'suspended'])->default('active');
-            $table->timestamp('last_login_at')->nullable();
 
+            $table->timestamp('last_login_at')->nullable();
             $table->index(['tenant_id', 'branch_id']);
             $table->index(['tenant_id', 'status']);
             $table->rememberToken();
+            $table->softDeletes();
             $table->timestamps();
         });
 
