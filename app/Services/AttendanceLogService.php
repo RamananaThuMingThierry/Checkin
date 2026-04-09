@@ -9,8 +9,10 @@ use App\Interfaces\EmployeeInterface;
 use App\Interfaces\EmployeeShiftAssignmentInterface;
 use App\Models\AttendanceLog;
 use App\Models\AttendanceRecord;
+use App\Models\Employee;
 use App\Models\EmployeeShiftAssignment;
 use App\Models\WorkShift;
+use Carbon\CarbonPeriod;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
@@ -54,6 +56,59 @@ class AttendanceLogService
         }
 
         return $records->values();
+    }
+
+    public function listAttendanceReport(int $tenantId, string $dateFrom, string $dateTo, ?int $branchId = null, ?int $departmentId = null): Collection
+    {
+        $employees = collect($this->employeeRepository->getAll(
+            keys: ['tenant_id', 'status'],
+            value: [$tenantId, 'active'],
+            relations: ['department', 'branch'],
+            orderBy: ['id' => 'asc'],
+        ));
+
+        if ($branchId !== null) {
+            $employees = $employees->where('branch_id', $branchId);
+        }
+
+        if ($departmentId !== null) {
+            $employees = $employees->where('department_id', $departmentId);
+        }
+
+        $period = collect(CarbonPeriod::create($dateFrom, $dateTo))
+            ->map(fn ($date) => $date->format('Y-m-d'));
+
+        $report = collect();
+
+        foreach ($employees as $employee) {
+            foreach ($period as $date) {
+                $record = $this->attendanceRecordRepository->getByKeys(
+                    ['tenant_id', 'employee_id', 'attendance_date'],
+                    [$tenantId, $employee->id, $date],
+                    relations: ['employee.department', 'branch', 'workShift'],
+                );
+
+                if ($record !== null) {
+                    if ($branchId !== null && (int) $record->branch_id !== $branchId) {
+                        continue;
+                    }
+
+                    if ($departmentId !== null && (int) ($record->employee?->department_id ?? 0) !== $departmentId) {
+                        continue;
+                    }
+
+                    if ((int) $record->late_minutes > 0) {
+                        $report->push($this->formatLateReportItem($record));
+                    }
+
+                    continue;
+                }
+
+                $report->push($this->formatAbsenceReportItem($tenantId, $employee, $date));
+            }
+        }
+
+        return $report->values();
     }
 
     public function listAttendanceAnomalies(int $tenantId, string $date)
@@ -396,5 +451,37 @@ class AttendanceLogService
             'message' => $message,
             'status' => $record->status,
         ], $extra);
+    }
+
+    private function formatLateReportItem(AttendanceRecord $record): array
+    {
+        return [
+            'tenant_id' => $record->tenant_id,
+            'employee_id' => $record->employee_id,
+            'employee' => $record->employee,
+            'branch' => $record->branch,
+            'attendance_date' => $record->getRawOriginal('attendance_date'),
+            'type' => 'late',
+            'status' => $record->status,
+            'late_minutes' => $record->late_minutes,
+            'worked_minutes' => $record->worked_minutes,
+            'attendance_record_id' => $record->id,
+        ];
+    }
+
+    private function formatAbsenceReportItem(int $tenantId, Employee $employee, string $date): array
+    {
+        return [
+            'tenant_id' => $tenantId,
+            'employee_id' => $employee->id,
+            'employee' => $employee,
+            'branch' => $employee->branch,
+            'attendance_date' => $date,
+            'type' => 'absence',
+            'status' => 'absent',
+            'late_minutes' => 0,
+            'worked_minutes' => 0,
+            'attendance_record_id' => null,
+        ];
     }
 }

@@ -59,6 +59,7 @@ Route::prefix('v1')->group(function (): void {
     Route::get('/tenants/{tenant}/departments', [TenantAdminDepartmentController::class, 'index'])->name('api.tenant_admin.departments.index');
     Route::get('/tenants/{tenant}/attendance-logs', [TenantAdminAttendanceLogController::class, 'index'])->name('api.tenant_admin.attendance_logs.index');
     Route::get('/tenants/{tenant}/attendance-records', [TenantAdminAttendanceLogController::class, 'listRecords'])->name('api.tenant_admin.attendance_records.index');
+    Route::get('/tenants/{tenant}/attendance-report', [TenantAdminAttendanceLogController::class, 'listReport'])->name('api.tenant_admin.attendance_report.index');
     Route::get('/tenants/{tenant}/attendance-anomalies', [TenantAdminAttendanceLogController::class, 'listAnomalies'])->name('api.tenant_admin.attendance_logs.anomalies');
     Route::post('/tenants/{tenant}/attendance-logs/consolidate', [TenantAdminAttendanceLogController::class, 'consolidate'])->name('api.tenant_admin.attendance_logs.consolidate');
     Route::post('/departments', [TenantAdminDepartmentController::class, 'store'])->name('api.tenant_admin.departments.store');
