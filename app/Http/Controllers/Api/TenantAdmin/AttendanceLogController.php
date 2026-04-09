@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\TenantAdmin\ConsolidateAttendanceRequest;
 use App\Http\Requests\TenantAdmin\ListAttendanceAnomalyRequest;
 use App\Http\Requests\TenantAdmin\ListAttendanceLogRequest;
+use App\Http\Requests\TenantAdmin\ListAttendanceRecordRequest;
 use App\Http\Requests\TenantAdmin\RejectAttendanceLogRequest;
 use App\Http\Requests\TenantAdmin\ResolveAttendanceLogEmployeeRequest;
 use App\Http\Requests\TenantAdmin\StoreAttendanceLogRequest;
@@ -26,6 +27,22 @@ class AttendanceLogController extends Controller
 
         return response()->json([
             'data' => $attendanceLogs,
+            'success' => true,
+        ], 200);
+    }
+
+    public function listRecords(ListAttendanceRecordRequest $request, int $tenant)
+    {
+        $data = $request->validated();
+        $attendanceRecords = $this->attendanceLogService->listDailyAttendanceRecords(
+            $tenant,
+            $data['date'],
+            $data['branch_id'] ?? null,
+            $data['department_id'] ?? null,
+        );
+
+        return response()->json([
+            'data' => $attendanceRecords,
             'success' => true,
         ], 200);
     }

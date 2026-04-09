@@ -36,6 +36,26 @@ class AttendanceLogService
         );
     }
 
+    public function listDailyAttendanceRecords(int $tenantId, string $date, ?int $branchId = null, ?int $departmentId = null)
+    {
+        $records = collect($this->attendanceRecordRepository->getAll(
+            keys: ['tenant_id', 'attendance_date'],
+            value: [$tenantId, $date],
+            relations: ['employee.department', 'branch', 'workShift'],
+            orderBy: ['check_in_time' => 'asc', 'id' => 'asc'],
+        ));
+
+        if ($branchId !== null) {
+            $records = $records->where('branch_id', $branchId);
+        }
+
+        if ($departmentId !== null) {
+            $records = $records->filter(fn (AttendanceRecord $record) => $record->employee?->department_id === $departmentId);
+        }
+
+        return $records->values();
+    }
+
     public function listAttendanceAnomalies(int $tenantId, string $date)
     {
         $records = collect($this->attendanceRecordRepository->getAll(
@@ -378,7 +398,3 @@ class AttendanceLogService
         ], $extra);
     }
 }
-
-
-
-

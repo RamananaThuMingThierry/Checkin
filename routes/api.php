@@ -57,13 +57,14 @@ Route::prefix('v1')->group(function (): void {
     Route::post('/branches/main', [SuperAdminBranchController::class, 'storeMain'])->name('api.superadmin.branches.store_main');
     Route::post('/tenant-admin/users', [SuperAdminTenantAdminController::class, 'store'])->name('api.superadmin.tenant_admins.store');
     Route::get('/tenants/{tenant}/departments', [TenantAdminDepartmentController::class, 'index'])->name('api.tenant_admin.departments.index');
+    Route::get('/tenants/{tenant}/attendance-logs', [TenantAdminAttendanceLogController::class, 'index'])->name('api.tenant_admin.attendance_logs.index');
+    Route::get('/tenants/{tenant}/attendance-records', [TenantAdminAttendanceLogController::class, 'listRecords'])->name('api.tenant_admin.attendance_records.index');
+    Route::get('/tenants/{tenant}/attendance-anomalies', [TenantAdminAttendanceLogController::class, 'listAnomalies'])->name('api.tenant_admin.attendance_logs.anomalies');
+    Route::post('/tenants/{tenant}/attendance-logs/consolidate', [TenantAdminAttendanceLogController::class, 'consolidate'])->name('api.tenant_admin.attendance_logs.consolidate');
     Route::post('/departments', [TenantAdminDepartmentController::class, 'store'])->name('api.tenant_admin.departments.store');
     Route::put('/departments/{department}', [TenantAdminDepartmentController::class, 'update'])->name('api.tenant_admin.departments.update');
     Route::post('/devices', [TenantAdminDeviceController::class, 'store'])->name('api.tenant_admin.devices.store');
     Route::put('/devices/{device}/branch', [TenantAdminDeviceController::class, 'assignBranch'])->name('api.tenant_admin.devices.assign_branch');
-    Route::get('/tenants/{tenant}/attendance-logs', [TenantAdminAttendanceLogController::class, 'index'])->name('api.tenant_admin.attendance_logs.index');
-    Route::get('/tenants/{tenant}/attendance-anomalies', [TenantAdminAttendanceLogController::class, 'listAnomalies'])->name('api.tenant_admin.attendance_logs.anomalies');
-    Route::post('/tenants/{tenant}/attendance-logs/consolidate', [TenantAdminAttendanceLogController::class, 'consolidate'])->name('api.tenant_admin.attendance_logs.consolidate');
     Route::post('/attendance-logs', [TenantAdminAttendanceLogController::class, 'store'])->name('api.tenant_admin.attendance_logs.store');
     Route::post('/attendance-logs/{attendanceLog}/resolve-employee', [TenantAdminAttendanceLogController::class, 'resolveEmployee'])->name('api.tenant_admin.attendance_logs.resolve_employee');
     Route::post('/attendance-logs/{attendanceLog}/reject', [TenantAdminAttendanceLogController::class, 'reject'])->name('api.tenant_admin.attendance_logs.reject');
