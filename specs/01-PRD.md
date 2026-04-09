@@ -82,6 +82,13 @@ Definir les fonctionnalites, les utilisateurs, les flux principaux et les criter
 - exposer les retards et absences sur une periode exploitable par RH et managers
 - preparer l'export et les tableaux de bord futurs
 
+### Flux 7 - Gerer les conges et parametres RH
+
+- maintenir les types de conges du tenant
+- soumettre et tracer les demandes de conges
+- maintenir les jours feries qui impactent le planning
+- gerer les parametres metier du tenant utiles au pointage et au reporting
+
 ## Criteres d'acceptation
 
 Chaque fonctionnalite devra inclure :

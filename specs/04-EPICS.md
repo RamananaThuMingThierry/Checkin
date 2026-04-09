@@ -107,3 +107,11 @@
 - US-029 : enregistrer un paiement d'abonnement
 - US-030 : lister les presences consolidees d'une journee
 - US-031 : lister les retards et absences sur une periode
+
+## Quatrieme vague de user stories backend
+
+- US-032 : gerer les types de conges
+- US-033 : soumettre une demande de conge
+- US-034 : gerer les jours feries du tenant
+- US-035 : gerer les parametres du tenant
+- US-036 : exporter le reporting de presence
