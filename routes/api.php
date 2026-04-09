@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\SuperAdmin\BranchController as SuperAdminBranchCont
 use App\Http\Controllers\Api\SuperAdmin\InvoiceController as SuperAdminInvoiceController;
 use App\Http\Controllers\Api\SuperAdmin\ModuleController as SuperAdminModuleController;
 use App\Http\Controllers\Api\SuperAdmin\OfferController as SuperAdminOfferController;
+use App\Http\Controllers\Api\SuperAdmin\PaymentController as SuperAdminPaymentController;
 use App\Http\Controllers\Api\SuperAdmin\PermissionController as SuperAdminPermissionController;
 use App\Http\Controllers\Api\SuperAdmin\RoleController as SuperAdminRoleController;
 use App\Http\Controllers\Api\SuperAdmin\SubscriptionController as SuperAdminSubscriptionController;
@@ -46,6 +47,7 @@ Route::prefix('v1')->group(function (): void {
         Route::post('/subscriptions/{subscription}/activate-modules', [SuperAdminTenantModuleController::class, 'activateFromSubscription'])->name('api.superadmin.tenant_modules.activate');
         Route::get('/tenants/{tenant}/invoices', [SuperAdminInvoiceController::class, 'index'])->name('api.superadmin.invoices.index');
         Route::get('/tenants/{tenant}/modules', [SuperAdminTenantModuleController::class, 'index'])->name('api.superadmin.tenant_modules.index');
+        Route::post('/invoices/{invoice}/payments', [SuperAdminPaymentController::class, 'store'])->name('api.superadmin.payments.store');
         Route::post('/roles/{role}/assign', [SuperAdminRoleController::class, 'assign'])->name('api.superadmin.roles.assign');
         Route::post('/permissions/{permission}/assign-role', [SuperAdminPermissionController::class, 'assignToRole'])->name('api.superadmin.permissions.assign_role');
         Route::post('/offers/{offer}/modules', [SuperAdminOfferController::class, 'attachModule'])->name('api.superadmin.offers.attach_module');
