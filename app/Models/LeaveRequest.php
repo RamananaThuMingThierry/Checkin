@@ -7,21 +7,24 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Facades\Crypt;
 
-class TenantModule extends Model
+class LeaveRequest extends Model
 {
     use HasFactory;
 
-    protected $table = 'tenant_modules';
+    protected $table = 'leave_requests';
 
     protected $fillable = [
         'tenant_id',
-        'module_id',
-        'subscription_id',
-        'is_enabled',
-        'quantity',
-        'starts_at',
-        'ends_at',
-        'activated_at',
+        'employee_id',
+        'leave_type_id',
+        'start_date',
+        'end_date',
+        'days_count',
+        'reason',
+        'status',
+        'approved_by',
+        'approved_at',
+        'attachment',
     ];
 
     protected $appends = ['encrypted_id'];
@@ -34,10 +37,10 @@ class TenantModule extends Model
     protected function casts(): array
     {
         return [
-            'is_enabled' => 'boolean',
-            'starts_at' => 'datetime',
-            'ends_at' => 'datetime',
-            'activated_at' => 'datetime',
+            'start_date' => 'date',
+            'end_date' => 'date',
+            'days_count' => 'decimal:2',
+            'approved_at' => 'datetime',
         ];
     }
 
@@ -46,13 +49,13 @@ class TenantModule extends Model
         return $this->belongsTo(Tenant::class);
     }
 
-    public function module(): BelongsTo
+    public function employee(): BelongsTo
     {
-        return $this->belongsTo(Module::class);
+        return $this->belongsTo(Employee::class);
     }
 
-    public function subscription(): BelongsTo
+    public function leaveType(): BelongsTo
     {
-        return $this->belongsTo(Subscription::class);
+        return $this->belongsTo(LeaveType::class);
     }
 }

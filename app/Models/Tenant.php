@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\Crypt;
 
 class Tenant extends Model
 {
@@ -30,6 +31,14 @@ class Tenant extends Model
     protected $casts = [
         'metadata' => 'array',
     ];
+
+
+    protected $appends = ['encrypted_id'];
+
+    public function getEncryptedIdAttribute(): string
+    {
+        return Crypt::encryptString($this->id);
+    }
 
     public function invoices(): HasMany
     {

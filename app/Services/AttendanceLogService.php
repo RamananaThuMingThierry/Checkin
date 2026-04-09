@@ -111,6 +111,52 @@ class AttendanceLogService
         return $report->values();
     }
 
+    public function exportAttendanceReportCsv(int $tenantId, string $dateFrom, string $dateTo, ?int $branchId = null, ?int $departmentId = null): string
+    {
+        $report = $this->listAttendanceReport($tenantId, $dateFrom, $dateTo, $branchId, $departmentId);
+        $stream = fopen('php://temp', 'r+');
+
+        fputcsv($stream, [
+            'attendance_date',
+            'type',
+            'employee_code',
+            'employee_name',
+            'branch_name',
+            'department_name',
+            'late_minutes',
+            'worked_minutes',
+            'status',
+        ]);
+
+        foreach ($report as $item) {
+            $employee = $item['employee'] ?? null;
+            $branch = $item['branch'] ?? null;
+            $department = $employee?->department;
+            $employeeName = trim(implode(' ', array_filter([
+                $employee?->first_name,
+                $employee?->last_name,
+            ])));
+
+            fputcsv($stream, [
+                $item['attendance_date'] ?? null,
+                $item['type'] ?? null,
+                $employee?->employee_code,
+                $employeeName,
+                $branch?->name,
+                $department?->name,
+                $item['late_minutes'] ?? 0,
+                $item['worked_minutes'] ?? 0,
+                $item['status'] ?? null,
+            ]);
+        }
+
+        rewind($stream);
+        $csv = stream_get_contents($stream) ?: '';
+        fclose($stream);
+
+        return $csv;
+    }
+
     public function listAttendanceAnomalies(int $tenantId, string $date)
     {
         $records = collect($this->attendanceRecordRepository->getAll(

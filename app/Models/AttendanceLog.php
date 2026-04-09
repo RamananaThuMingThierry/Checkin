@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Facades\Crypt;
 
 class AttendanceLog extends Model
 {
@@ -25,6 +26,14 @@ class AttendanceLog extends Model
         'result',
         'message',
     ];
+
+
+    protected $appends = ['encrypted_id'];
+
+    public function getEncryptedIdAttribute(): string
+    {
+        return Crypt::encryptString($this->id);
+    }
 
     protected function casts(): array
     {

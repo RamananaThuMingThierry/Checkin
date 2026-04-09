@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\TenantAdmin;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\TenantAdmin\ConsolidateAttendanceRequest;
+use App\Http\Requests\TenantAdmin\ExportAttendanceReportRequest;
 use App\Http\Requests\TenantAdmin\ListAttendanceAnomalyRequest;
 use App\Http\Requests\TenantAdmin\ListAttendanceLogRequest;
 use App\Http\Requests\TenantAdmin\ListAttendanceRecordRequest;
@@ -63,6 +64,33 @@ class AttendanceLogController extends Controller
             'data' => $report,
             'success' => true,
         ], 200);
+    }
+
+    public function exportReport(ExportAttendanceReportRequest $request, string $tenant)
+    {
+        $tenantId = decrypt_to_int_or_null($tenant);
+
+        if ($tenantId === null) {
+            throw ValidationException::withMessages([
+                'tenant' => 'The selected tenant is invalid.',
+            ]);
+        }
+
+        $data = $request->validated();
+        $csv = $this->attendanceLogService->exportAttendanceReportCsv(
+            $tenantId,
+            $data['date_from'],
+            $data['date_to'],
+            $data['branch_id'] ?? null,
+            $data['department_id'] ?? null,
+        );
+
+        $fileName = sprintf('attendance-report-%s-%s.csv', $data['date_from'], $data['date_to']);
+
+        return response($csv, 200, [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => 'attachment; filename="'.$fileName.'"',
+        ]);
     }
 
     public function listAnomalies(ListAttendanceAnomalyRequest $request, int $tenant)

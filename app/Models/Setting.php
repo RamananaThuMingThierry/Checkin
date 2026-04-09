@@ -7,22 +7,16 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Facades\Crypt;
 
-class WorkShift extends Model
+class Setting extends Model
 {
     use HasFactory;
 
-    protected $table = 'work_shifts';
+    protected $table = 'settings';
 
     protected $fillable = [
         'tenant_id',
-        'branch_id',
-        'name',
-        'code',
-        'start_time',
-        'end_time',
-        'break_duration_minutes',
-        'late_tolerance_minutes',
-        'is_night_shift',
+        'key',
+        'value',
     ];
 
     protected $appends = ['encrypted_id'];
@@ -32,20 +26,8 @@ class WorkShift extends Model
         return Crypt::encryptString($this->id);
     }
 
-    protected function casts(): array
-    {
-        return [
-            'is_night_shift' => 'boolean',
-        ];
-    }
-
     public function tenant(): BelongsTo
     {
         return $this->belongsTo(Tenant::class);
-    }
-
-    public function branch(): BelongsTo
-    {
-        return $this->belongsTo(Branch::class);
     }
 }

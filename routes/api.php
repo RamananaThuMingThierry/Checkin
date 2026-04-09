@@ -18,7 +18,10 @@ use App\Http\Controllers\Api\TenantAdmin\DepartmentController as TenantAdminDepa
 use App\Http\Controllers\Api\TenantAdmin\DeviceController as TenantAdminDeviceController;
 use App\Http\Controllers\Api\TenantAdmin\EmployeeController as TenantAdminEmployeeController;
 use App\Http\Controllers\Api\TenantAdmin\EmployeeShiftAssignmentController as TenantAdminEmployeeShiftAssignmentController;
+use App\Http\Controllers\Api\TenantAdmin\HolidayController as TenantAdminHolidayController;
+use App\Http\Controllers\Api\TenantAdmin\LeaveRequestController as TenantAdminLeaveRequestController;
 use App\Http\Controllers\Api\TenantAdmin\LeaveTypeController as TenantAdminLeaveTypeController;
+use App\Http\Controllers\Api\TenantAdmin\SettingController as TenantAdminSettingController;
 use App\Http\Controllers\Api\TenantAdmin\WorkShiftController as TenantAdminWorkShiftController;
 use Illuminate\Support\Facades\Route;
 
@@ -59,13 +62,19 @@ Route::prefix('v1')->group(function (): void {
     Route::post('/tenant-admin/users', [SuperAdminTenantAdminController::class, 'store'])->name('api.superadmin.tenant_admins.store');
     Route::get('/tenants/{tenant}/departments', [TenantAdminDepartmentController::class, 'index'])->name('api.tenant_admin.departments.index');
     Route::get('/tenants/{tenant}/leave-types', [TenantAdminLeaveTypeController::class, 'index'])->name('api.tenant_admin.leave_types.index');
+    Route::get('/tenants/{tenant}/holidays', [TenantAdminHolidayController::class, 'index'])->name('api.tenant_admin.holidays.index');
+    Route::get('/tenants/{tenant}/settings', [TenantAdminSettingController::class, 'show'])->name('api.tenant_admin.settings.show');
     Route::get('/tenants/{tenant}/attendance-logs', [TenantAdminAttendanceLogController::class, 'index'])->name('api.tenant_admin.attendance_logs.index');
     Route::get('/tenants/{tenant}/attendance-records', [TenantAdminAttendanceLogController::class, 'listRecords'])->name('api.tenant_admin.attendance_records.index');
     Route::get('/tenants/{tenant}/attendance-report', [TenantAdminAttendanceLogController::class, 'listReport'])->name('api.tenant_admin.attendance_report.index');
+    Route::get('/tenants/{tenant}/attendance-report/export', [TenantAdminAttendanceLogController::class, 'exportReport'])->name('api.tenant_admin.attendance_report.export');
     Route::get('/tenants/{tenant}/attendance-anomalies', [TenantAdminAttendanceLogController::class, 'listAnomalies'])->name('api.tenant_admin.attendance_logs.anomalies');
     Route::post('/tenants/{tenant}/attendance-logs/consolidate', [TenantAdminAttendanceLogController::class, 'consolidate'])->name('api.tenant_admin.attendance_logs.consolidate');
     Route::post('/departments', [TenantAdminDepartmentController::class, 'store'])->name('api.tenant_admin.departments.store');
     Route::post('/leave-types', [TenantAdminLeaveTypeController::class, 'store'])->name('api.tenant_admin.leave_types.store');
+    Route::post('/holidays', [TenantAdminHolidayController::class, 'store'])->name('api.tenant_admin.holidays.store');
+    Route::post('/leave-requests', [TenantAdminLeaveRequestController::class, 'store'])->name('api.tenant_admin.leave_requests.store');
+    Route::put('/settings', [TenantAdminSettingController::class, 'update'])->name('api.tenant_admin.settings.update');
     Route::put('/departments/{department}', [TenantAdminDepartmentController::class, 'update'])->name('api.tenant_admin.departments.update');
     Route::post('/devices', [TenantAdminDeviceController::class, 'store'])->name('api.tenant_admin.devices.store');
     Route::put('/devices/{device}/branch', [TenantAdminDeviceController::class, 'assignBranch'])->name('api.tenant_admin.devices.assign_branch');

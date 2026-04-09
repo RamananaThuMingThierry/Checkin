@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\Crypt;
 
 class Subscription extends Model
 {
@@ -33,6 +34,13 @@ class Subscription extends Model
         'external_subscription_id',
         'notes',
     ];
+
+    protected $appends = ['encrypted_id'];
+
+    public function getEncryptedIdAttribute(): string
+    {
+        return Crypt::encryptString($this->id);
+    }
 
     protected function casts(): array
     {

@@ -7,21 +7,18 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Facades\Crypt;
 
-class TenantModule extends Model
+class Holiday extends Model
 {
     use HasFactory;
 
-    protected $table = 'tenant_modules';
+    protected $table = 'holidays';
 
     protected $fillable = [
         'tenant_id',
-        'module_id',
-        'subscription_id',
-        'is_enabled',
-        'quantity',
-        'starts_at',
-        'ends_at',
-        'activated_at',
+        'branch_id',
+        'name',
+        'holiday_date',
+        'is_recurring',
     ];
 
     protected $appends = ['encrypted_id'];
@@ -34,10 +31,8 @@ class TenantModule extends Model
     protected function casts(): array
     {
         return [
-            'is_enabled' => 'boolean',
-            'starts_at' => 'datetime',
-            'ends_at' => 'datetime',
-            'activated_at' => 'datetime',
+            'holiday_date' => 'date',
+            'is_recurring' => 'boolean',
         ];
     }
 
@@ -46,13 +41,8 @@ class TenantModule extends Model
         return $this->belongsTo(Tenant::class);
     }
 
-    public function module(): BelongsTo
+    public function branch(): BelongsTo
     {
-        return $this->belongsTo(Module::class);
-    }
-
-    public function subscription(): BelongsTo
-    {
-        return $this->belongsTo(Subscription::class);
+        return $this->belongsTo(Branch::class);
     }
 }

@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Support\Facades\Crypt;
 
 class Module extends Model
 {
@@ -19,6 +20,13 @@ class Module extends Model
         'version',
         'is_active',
     ];
+
+    protected $appends = ['encrypted_id'];
+
+    public function getEncryptedIdAttribute(): string
+    {
+        return Crypt::encryptString($this->id);
+    }
 
     protected function casts(): array
     {
