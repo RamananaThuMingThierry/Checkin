@@ -4,29 +4,55 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Tenant extends Model
 {
     use HasFactory;
-    use SoftDeletes;
 
     protected $fillable = [
         'name',
         'code',
-        'email',
-        'phone',
-        'address',
-        'logo',
-        'billing_name',
-        'billing_email',
-        'billing_phone',
-        'billing_address',
-        'billing_city',
-        'billing_country',
-        'tax_identification_number',
-        'registration_number',
-        'currency',
         'status',
+        'timezone',
+        'currency',
+        'country',
+        'city',
+        'address',
+        'phone',
+        'email',
+        'website',
+        'logo_path',
+        'metadata',
     ];
+
+    protected $casts = [
+        'metadata' => 'array',
+    ];
+
+    public function invoices(): HasMany
+    {
+        return $this->hasMany(Invoice::class);
+    }
+
+    public function branches(): HasMany
+    {
+        return $this->hasMany(Branch::class);
+    }
+
+    public function users(): HasMany
+    {
+        return $this->hasMany(User::class);
+    }
+
+    public function departments(): HasMany
+    {
+        return $this->hasMany(Department::class);
+    }
+
+    public function employees(): HasMany
+    {
+        return $this->hasMany(Employee::class);
+    }
 }

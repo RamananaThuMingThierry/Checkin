@@ -44,6 +44,7 @@ Route::prefix('v1')->group(function (): void {
         Route::post('/subscriptions', [SuperAdminSubscriptionController::class, 'store'])->name('api.superadmin.subscriptions.store');
         Route::post('/subscriptions/{subscription}/invoices', [SuperAdminInvoiceController::class, 'generate'])->name('api.superadmin.invoices.generate');
         Route::post('/subscriptions/{subscription}/activate-modules', [SuperAdminTenantModuleController::class, 'activateFromSubscription'])->name('api.superadmin.tenant_modules.activate');
+        Route::get('/tenants/{tenant}/invoices', [SuperAdminInvoiceController::class, 'index'])->name('api.superadmin.invoices.index');
         Route::get('/tenants/{tenant}/modules', [SuperAdminTenantModuleController::class, 'index'])->name('api.superadmin.tenant_modules.index');
         Route::post('/roles/{role}/assign', [SuperAdminRoleController::class, 'assign'])->name('api.superadmin.roles.assign');
         Route::post('/permissions/{permission}/assign-role', [SuperAdminPermissionController::class, 'assignToRole'])->name('api.superadmin.permissions.assign_role');

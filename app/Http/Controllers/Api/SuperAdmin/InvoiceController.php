@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\SuperAdmin;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\SuperAdmin\GenerateInvoiceRequest;
+use App\Http\Requests\SuperAdmin\ListTenantInvoicesRequest;
 use App\Services\ActivityLogService;
 use App\Services\InvoiceService;
 use Illuminate\Support\Facades\DB;
@@ -15,6 +16,16 @@ class InvoiceController extends Controller
         private readonly InvoiceService $invoiceService,
         private readonly ActivityLogService $activityLogService,
     ) {
+    }
+
+    public function index(int $tenant, ListTenantInvoicesRequest $request)
+    {
+        $invoices = $this->invoiceService->listTenantInvoices($tenant, $request->validated());
+
+        return response()->json([
+            'data' => $invoices,
+            'success' => true,
+        ], 200);
     }
 
     public function generate(int $subscription, GenerateInvoiceRequest $request)

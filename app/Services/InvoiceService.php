@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Interfaces\InvoiceInterface;
 use App\Interfaces\SubscriptionInterface;
+use App\Interfaces\TenantInterface;
 use App\Models\Invoice;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Carbon;
@@ -15,7 +16,30 @@ class InvoiceService
     public function __construct(
         private readonly InvoiceInterface $invoiceRepository,
         private readonly SubscriptionInterface $subscriptionRepository,
+        private readonly TenantInterface $tenantRepository,
     ) {
+    }
+
+    public function listTenantInvoices(int $tenantId, array $filters = [])
+    {
+        $tenant = $this->tenantRepository->getById($tenantId);
+
+        if ($tenant === null) {
+            throw ValidationException::withMessages([
+                'tenant_id' => 'The selected tenant is invalid.',
+            ]);
+        }
+
+        $status = $filters['status'] ?? null;
+        $keys = $status ? ['tenant_id', 'status'] : 'tenant_id';
+        $values = $status ? [$tenantId, $status] : $tenantId;
+
+        return $this->invoiceRepository->getAll(
+            keys: $keys,
+            value: $values,
+            relations: ['subscription'],
+            orderBy: ['invoice_date' => 'desc', 'id' => 'desc'],
+        );
     }
 
     public function generateFromSubscription(int $subscriptionId, array $data = []): Invoice
