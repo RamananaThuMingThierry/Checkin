@@ -1,4 +1,4 @@
-# 02 - UX Design
+﻿# 02 - UX Design
 
 ## Objectif
 
@@ -38,7 +38,22 @@ Documenter les parcours, ecrans et principes d'experience utilisateur.
 - presences journalieres
 - conges
 - abonnements / facturation
+- shell dashboard avec sidebar, header, footer, content et navigation filtree par role
 
 ## Notes UI
 
-A completer.
+- structure frontend React attendue dans `resources/js` :
+  - `api/`
+  - `components/`
+  - `data/`
+  - `hooks/`
+  - `layouts/`
+  - `pages/`
+  - `routes/`
+  - `utils/`
+- organisation des pages par parcours et user stories :
+  - `pages/auth/`
+  - `pages/dashboard/`
+  - `pages/rh/leaves/`
+  - `pages/rh/reporting/`
+

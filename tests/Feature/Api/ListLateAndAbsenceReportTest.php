@@ -6,6 +6,8 @@ use App\Models\AttendanceRecord;
 use App\Models\Branch;
 use App\Models\Department;
 use App\Models\Employee;
+use App\Models\LeaveRequest;
+use App\Models\LeaveType;
 use App\Models\Tenant;
 use Tests\Concerns\RefreshMysqlDatabase;
 use Tests\TestCase;
@@ -108,6 +110,35 @@ class ListLateAndAbsenceReportTest extends TestCase
             ->assertJsonPath('success', true);
     }
 
+    public function test_it_returns_approved_leave_instead_of_absence_for_covered_days(): void
+    {
+        $tenant = $this->createTenant('acme-corp');
+        $branch = $this->createBranch($tenant, 'main-branch');
+        $department = $this->createDepartment($tenant, $branch, 'ops');
+        $employee = $this->createEmployee($tenant, $branch, $department, 'emp-001', 'BADGE-001');
+        $leaveType = $this->createLeaveType($tenant, 'paid-leave');
+
+        LeaveRequest::query()->create([
+            'tenant_id' => $tenant->id,
+            'employee_id' => $employee->id,
+            'leave_type_id' => $leaveType->id,
+            'start_date' => '2026-04-09',
+            'end_date' => '2026-04-10',
+            'days_count' => 2,
+            'status' => 'approved',
+        ]);
+
+        $response = $this->getJson("/api/v1/tenants/{$tenant->id}/attendance-report?date_from=2026-04-09&date_to=2026-04-10");
+
+        $response->assertOk()
+            ->assertJsonCount(2, 'data')
+            ->assertJsonPath('data.0.type', 'approved_leave')
+            ->assertJsonPath('data.0.status', 'approved')
+            ->assertJsonPath('data.0.employee_id', $employee->id)
+            ->assertJsonPath('data.1.type', 'approved_leave')
+            ->assertJsonPath('data.1.attendance_date', '2026-04-10');
+    }
+
     public function test_it_validates_the_period_inputs(): void
     {
         $tenant = $this->createTenant('acme-corp');
@@ -160,6 +191,16 @@ class ListLateAndAbsenceReportTest extends TestCase
             'last_name' => 'Rakoto',
             'badge_uid' => $badgeUid,
             'status' => 'active',
+        ]);
+    }
+
+    private function createLeaveType(Tenant $tenant, string $code): LeaveType
+    {
+        return LeaveType::query()->create([
+            'tenant_id' => $tenant->id,
+            'name' => strtoupper($code),
+            'code' => $code,
+            'is_paid' => true,
         ]);
     }
 }

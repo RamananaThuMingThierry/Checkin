@@ -7,10 +7,12 @@ use App\Interfaces\AttendanceRecordInterface;
 use App\Interfaces\DeviceInterface;
 use App\Interfaces\EmployeeInterface;
 use App\Interfaces\EmployeeShiftAssignmentInterface;
+use App\Interfaces\LeaveRequestInterface;
 use App\Models\AttendanceLog;
 use App\Models\AttendanceRecord;
 use App\Models\Employee;
 use App\Models\EmployeeShiftAssignment;
+use App\Models\LeaveRequest;
 use App\Models\WorkShift;
 use Carbon\CarbonPeriod;
 use Illuminate\Support\Arr;
@@ -26,6 +28,7 @@ class AttendanceLogService
         private readonly DeviceInterface $deviceRepository,
         private readonly EmployeeInterface $employeeRepository,
         private readonly EmployeeShiftAssignmentInterface $employeeShiftAssignmentRepository,
+        private readonly LeaveRequestInterface $leaveRequestRepository,
     ) {
     }
 
@@ -77,6 +80,7 @@ class AttendanceLogService
 
         $period = collect(CarbonPeriod::create($dateFrom, $dateTo))
             ->map(fn ($date) => $date->format('Y-m-d'));
+        $approvedLeaves = $this->mapApprovedLeaves($tenantId, $dateFrom, $dateTo);
 
         $report = collect();
 
@@ -101,6 +105,11 @@ class AttendanceLogService
                         $report->push($this->formatLateReportItem($record));
                     }
 
+                    continue;
+                }
+
+                if (isset($approvedLeaves[$employee->id][$date])) {
+                    $report->push($this->formatApprovedLeaveReportItem($tenantId, $employee, $date, $approvedLeaves[$employee->id][$date]));
                     continue;
                 }
 
@@ -529,5 +538,49 @@ class AttendanceLogService
             'worked_minutes' => 0,
             'attendance_record_id' => null,
         ];
+    }
+
+    private function formatApprovedLeaveReportItem(int $tenantId, Employee $employee, string $date, LeaveRequest $leaveRequest): array
+    {
+        return [
+            'tenant_id' => $tenantId,
+            'employee_id' => $employee->id,
+            'employee' => $employee,
+            'branch' => $employee->branch,
+            'attendance_date' => $date,
+            'type' => 'approved_leave',
+            'status' => 'approved',
+            'late_minutes' => 0,
+            'worked_minutes' => 0,
+            'attendance_record_id' => null,
+            'leave_request_id' => $leaveRequest->id,
+            'leave_type' => $leaveRequest->leaveType,
+        ];
+    }
+
+    private function mapApprovedLeaves(int $tenantId, string $dateFrom, string $dateTo): array
+    {
+        $approvedLeaves = collect($this->leaveRequestRepository->getAll(
+            keys: ['tenant_id', 'status'],
+            value: [$tenantId, 'approved'],
+            relations: ['leaveType'],
+            orderBy: ['start_date' => 'asc', 'id' => 'asc'],
+        ))->filter(function (LeaveRequest $leaveRequest) use ($dateFrom, $dateTo) {
+            return $leaveRequest->end_date?->format('Y-m-d') >= $dateFrom
+                && $leaveRequest->start_date?->format('Y-m-d') <= $dateTo;
+        });
+
+        $mappedLeaves = [];
+
+        foreach ($approvedLeaves as $leaveRequest) {
+            $overlapStart = max($dateFrom, $leaveRequest->start_date?->format('Y-m-d'));
+            $overlapEnd = min($dateTo, $leaveRequest->end_date?->format('Y-m-d'));
+
+            foreach (CarbonPeriod::create($overlapStart, $overlapEnd) as $date) {
+                $mappedLeaves[$leaveRequest->employee_id][$date->format('Y-m-d')] = $leaveRequest;
+            }
+        }
+
+        return $mappedLeaves;
     }
 }

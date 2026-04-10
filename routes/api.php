@@ -62,6 +62,8 @@ Route::prefix('v1')->group(function (): void {
     Route::post('/tenant-admin/users', [SuperAdminTenantAdminController::class, 'store'])->name('api.superadmin.tenant_admins.store');
     Route::get('/tenants/{tenant}/departments', [TenantAdminDepartmentController::class, 'index'])->name('api.tenant_admin.departments.index');
     Route::get('/tenants/{tenant}/leave-types', [TenantAdminLeaveTypeController::class, 'index'])->name('api.tenant_admin.leave_types.index');
+    Route::get('/tenants/{tenant}/leave-requests', [TenantAdminLeaveRequestController::class, 'index'])->name('api.tenant_admin.leave_requests.index');
+    Route::get('/tenants/{tenant}/planned-absences', [TenantAdminLeaveRequestController::class, 'calendar'])->name('api.tenant_admin.planned_absences.index');
     Route::get('/tenants/{tenant}/holidays', [TenantAdminHolidayController::class, 'index'])->name('api.tenant_admin.holidays.index');
     Route::get('/tenants/{tenant}/settings', [TenantAdminSettingController::class, 'show'])->name('api.tenant_admin.settings.show');
     Route::get('/tenants/{tenant}/attendance-logs', [TenantAdminAttendanceLogController::class, 'index'])->name('api.tenant_admin.attendance_logs.index');
@@ -74,6 +76,8 @@ Route::prefix('v1')->group(function (): void {
     Route::post('/leave-types', [TenantAdminLeaveTypeController::class, 'store'])->name('api.tenant_admin.leave_types.store');
     Route::post('/holidays', [TenantAdminHolidayController::class, 'store'])->name('api.tenant_admin.holidays.store');
     Route::post('/leave-requests', [TenantAdminLeaveRequestController::class, 'store'])->name('api.tenant_admin.leave_requests.store');
+    Route::post('/leave-requests/{leaveRequest}/approve', [TenantAdminLeaveRequestController::class, 'approve'])->name('api.tenant_admin.leave_requests.approve');
+    Route::post('/leave-requests/{leaveRequest}/reject', [TenantAdminLeaveRequestController::class, 'reject'])->name('api.tenant_admin.leave_requests.reject');
     Route::put('/settings', [TenantAdminSettingController::class, 'update'])->name('api.tenant_admin.settings.update');
     Route::put('/departments/{department}', [TenantAdminDepartmentController::class, 'update'])->name('api.tenant_admin.departments.update');
     Route::post('/devices', [TenantAdminDeviceController::class, 'store'])->name('api.tenant_admin.devices.store');

@@ -24,6 +24,7 @@ class LeaveRequest extends Model
         'status',
         'approved_by',
         'approved_at',
+        'rejection_reason',
         'attachment',
     ];
 
@@ -57,5 +58,10 @@ class LeaveRequest extends Model
     public function leaveType(): BelongsTo
     {
         return $this->belongsTo(LeaveType::class);
+    }
+
+    public function approver(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'approved_by');
     }
 }

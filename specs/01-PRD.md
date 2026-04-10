@@ -1,4 +1,4 @@
-# 01 - PRD
+﻿# 01 - PRD
 
 ## Objectif produit
 
@@ -29,6 +29,7 @@ Definir les fonctionnalites, les utilisateurs, les flux principaux et les criter
 - pointage et consolidation des presences
 - gestion des conges et jours feries
 - facturation, abonnements et modules
+- dashboard role-based avec vues distinctes pour super-admin, admin entreprise, manager, RH et employe
 
 ## Contraintes de conception
 
@@ -89,6 +90,13 @@ Definir les fonctionnalites, les utilisateurs, les flux principaux et les criter
 - maintenir les jours feries qui impactent le planning
 - gerer les parametres metier du tenant utiles au pointage et au reporting
 
+### Flux 8 - Operer le workflow de conges
+
+- lister les demandes de conges sur une periode
+- approuver ou rejeter une demande avec trace de decision
+- restituer un calendrier simple des absences planifiees
+- distinguer les absences justifiees par conge approuve des absences reelles dans le reporting
+
 ## Criteres d'acceptation
 
 Chaque fonctionnalite devra inclure :
@@ -99,3 +107,4 @@ Chaque fonctionnalite devra inclure :
 - scenario nominal
 - erreurs attendues
 - resultat attendu
+

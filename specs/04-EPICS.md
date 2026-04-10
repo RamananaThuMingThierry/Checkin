@@ -35,6 +35,7 @@
 - horaires
 - affectations
 - conges
+- workflow d'approbation
 
 ## Epic 6 - Pointage
 
@@ -67,6 +68,7 @@
 7. pointage brut
 8. consolidation de presence
 9. billing
+10. workflow RH avance
 
 ## Premiere vague de user stories backend
 
@@ -115,3 +117,35 @@
 - US-034 : gerer les jours feries du tenant
 - US-035 : gerer les parametres du tenant
 - US-036 : exporter le reporting de presence
+
+## Cinquieme vague de user stories backend
+
+- US-037 : lister les demandes de conge d'un tenant
+- US-038 : approuver une demande de conge
+- US-039 : rejeter une demande de conge
+- US-040 : lister le calendrier des absences planifiees
+- US-041 : exclure les conges approuves du rapport d'absences
+
+## Premiere vague de user stories frontend super-admin
+
+- US-FE-SA-001 : isoler le dashboard super-admin
+- US-FE-SA-002 : creer un tenant depuis le dashboard super-admin
+- US-FE-SA-003 : gerer les offres depuis le dashboard super-admin
+- US-FE-SA-004 : souscrire et activer une offre depuis le dashboard
+- US-FE-SA-005 : gerer les factures et paiements du tenant
+- US-FE-SA-006 : gerer les parametres plateforme depuis le dashboard super-admin
+
+## Deuxieme vague de user stories frontend tenant admin
+
+- US-FE-TA-001 : isoler le dashboard tenant admin
+- US-FE-TA-002 : connecter le workflow des demandes de conge cote tenant
+- US-FE-TA-003 : connecter le calendrier des absences planifiees cote tenant
+- US-FE-TA-004 : connecter le reporting des absences et retards cote tenant
+
+## Vague frontend transverse dashboard role-based
+
+- US-FE-005 : filtrer la navigation et le contenu du dashboard selon le role courant
+
+
+
+

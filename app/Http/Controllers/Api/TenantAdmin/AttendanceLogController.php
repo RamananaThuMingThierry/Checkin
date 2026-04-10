@@ -49,11 +49,19 @@ class AttendanceLogController extends Controller
         ], 200);
     }
 
-    public function listReport(ListAttendanceReportRequest $request, int $tenant)
+    public function listReport(ListAttendanceReportRequest $request, string $tenant)
     {
+        $tenantId = decrypt_to_int_or_null($tenant);
+
+        if ($tenantId === null) {
+            throw ValidationException::withMessages([
+                'tenant' => 'The selected tenant is invalid.',
+            ]);
+        }
+
         $data = $request->validated();
         $report = $this->attendanceLogService->listAttendanceReport(
-            $tenant,
+            $tenantId,
             $data['date_from'],
             $data['date_to'],
             $data['branch_id'] ?? null,

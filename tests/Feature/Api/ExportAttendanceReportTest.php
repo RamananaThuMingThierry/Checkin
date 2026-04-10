@@ -6,6 +6,8 @@ use App\Models\AttendanceRecord;
 use App\Models\Branch;
 use App\Models\Department;
 use App\Models\Employee;
+use App\Models\LeaveRequest;
+use App\Models\LeaveType;
 use App\Models\Tenant;
 use Tests\Concerns\RefreshMysqlDatabase;
 use Tests\TestCase;
@@ -88,6 +90,35 @@ class ExportAttendanceReportTest extends TestCase
             ->assertJsonValidationErrors(['date_to']);
     }
 
+    public function test_it_exports_approved_leave_instead_of_absence_when_covered_by_leave(): void
+    {
+        $tenant = $this->createTenant('acme-corp');
+        $branch = $this->createBranch($tenant, 'main-branch');
+        $department = $this->createDepartment($tenant, $branch, 'ops');
+        $employee = $this->createEmployee($tenant, $branch, $department, 'emp-001', 'BADGE-001', 'Aina', 'Rakoto');
+        $leaveType = $this->createLeaveType($tenant, 'paid-leave');
+
+        LeaveRequest::query()->create([
+            'tenant_id' => $tenant->id,
+            'employee_id' => $employee->id,
+            'leave_type_id' => $leaveType->id,
+            'start_date' => '2026-04-09',
+            'end_date' => '2026-04-10',
+            'days_count' => 2,
+            'status' => 'approved',
+        ]);
+
+        $response = $this->get("/api/v1/tenants/{$tenant->encrypted_id}/attendance-report/export?date_from=2026-04-09&date_to=2026-04-10");
+
+        $response->assertOk();
+
+        $content = $response->getContent();
+
+        $this->assertStringContainsString("2026-04-09,approved_leave,emp-001,\"Aina Rakoto\",MAIN-BRANCH,OPS,0,0,approved", $content);
+        $this->assertStringContainsString("2026-04-10,approved_leave,emp-001,\"Aina Rakoto\",MAIN-BRANCH,OPS,0,0,approved", $content);
+        $this->assertStringNotContainsString('absence,emp-001', $content);
+    }
+
     private function createTenant(string $code): Tenant
     {
         return Tenant::query()->create([
@@ -130,6 +161,16 @@ class ExportAttendanceReportTest extends TestCase
             'last_name' => $lastName,
             'badge_uid' => $badgeUid,
             'status' => 'active',
+        ]);
+    }
+
+    private function createLeaveType(Tenant $tenant, string $code): LeaveType
+    {
+        return LeaveType::query()->create([
+            'tenant_id' => $tenant->id,
+            'name' => strtoupper($code),
+            'code' => $code,
+            'is_paid' => true,
         ]);
     }
 }
