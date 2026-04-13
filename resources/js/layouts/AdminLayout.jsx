@@ -1,306 +1,415 @@
-import { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/AuthContext";
 import { useI18n } from "../hooks/I18nContext";
+import { resolveDefaultPath } from "../route/guards";
 
-const NAV_ITEMS = [
-  { to: "/super-admin/dashboard", label: "Dashboard", hint: "Vue plateforme" },
-  { to: "/super-admin/tenants", label: "Tenants", hint: "Provisioning clients" },
-  { to: "/super-admin/offers", label: "Offers", hint: "Catalogue commercial" },
-  { to: "/super-admin/subscriptions", label: "Subscriptions", hint: "Activation SaaS" },
-  { to: "/super-admin/invoices", label: "Invoices", hint: "Billing et paiements" },
-  { to: "/super-admin/settings", label: "Settings", hint: "Parametrage global" },
-];
-
-const LOCALES = [
-  { code: "fr", label: "FR" },
-  { code: "en", label: "EN" },
-  { code: "ar", label: "AR" },
-];
-
-function getSection(pathname) {
-  return NAV_ITEMS.find((item) => pathname.startsWith(item.to)) ?? null;
-}
-
-function isDesktopViewport() {
-  if (typeof window === "undefined") {
-    return true;
+function buildAvatarUrl(path) {
+  if (!path) {
+    return null;
   }
 
-  return window.innerWidth >= 992;
+  if (/^https?:\/\//i.test(path)) {
+    return path;
+  }
+
+  const apiUrl = import.meta.env.VITE_API_URL || `${window.location.origin}/api/v1`;
+  const base = apiUrl.replace(/\/api\/?v?\d*\/?$/, "");
+
+  return `${base}/${String(path).replace(/^\/+/, "")}`;
 }
 
-function IconMenu() {
-  return <span className="superadmin-menu-btn__icon" aria-hidden="true" />;
+function buildNavigation(roles) {
+  if (roles.includes("platform-super-admin")) {
+    return [
+      { to: "/super-admin/dashboard", icon: "bi-speedometer2", label: "Tableau de bord" },
+      { to: "/super-admin/dashboard", icon: "bi-building-gear", label: "Pilotage plateforme" },
+    ];
+  }
+
+  return [
+    { to: "/tenant/dashboard", icon: "bi-speedometer2", label: "Tableau de bord" },
+    { to: "/tenant/dashboard", icon: "bi-clock-history", label: "Pointages" },
+  ];
 }
 
-function IconGlobe() {
+function SidebarItem({ item, collapsed, onAction }) {
+  const { to, label, action, icon } = item;
+
+  if (action) {
+    return (
+      <button
+        type="button"
+        title={collapsed ? label : undefined}
+        className="nav-link d-flex align-items-center px-2 py-2 rounded-3 mb-1 text-light sidebar-link w-100 border-0 bg-transparent text-start"
+        onClick={() => onAction(action)}
+      >
+        <span className="d-flex align-items-center gap-2 w-100">
+          <span className="sidebar-icon d-inline-flex align-items-center justify-content-center rounded-3 flex-shrink-0">
+            <i className={`bi ${icon}`} />
+          </span>
+
+          {!collapsed ? (
+            <span className="fw-medium text-truncate" style={{ maxWidth: 160 }}>
+              {label}
+            </span>
+          ) : null}
+        </span>
+      </button>
+    );
+  }
+
   return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" className="superadmin-action-icon">
-      <path
-        d="M12 2a10 10 0 1 0 0 20a10 10 0 0 0 0-20m6.92 9h-3.03a15.5 15.5 0 0 0-1.38-5A8.03 8.03 0 0 1 18.92 11M12 4.04c.84 1.07 1.87 3.19 2.24 6H9.76c.37-2.81 1.4-4.93 2.24-6M9.49 6A15.5 15.5 0 0 0 8.11 11H5.08A8.03 8.03 0 0 1 9.49 6M5.08 13h3.03a15.5 15.5 0 0 0 1.38 5A8.03 8.03 0 0 1 5.08 13M12 19.96c-.84-1.07-1.87-3.19-2.24-6h4.48c-.37 2.81-1.4 4.93-2.24 6M14.51 18a15.5 15.5 0 0 0 1.38-5h3.03A8.03 8.03 0 0 1 14.51 18"
-        fill="currentColor"
-      />
-    </svg>
+    <NavLink
+      to={to}
+      title={collapsed ? label : undefined}
+      className={({ isActive }) =>
+        [
+          "nav-link",
+          "d-flex",
+          "align-items-center",
+          "px-2",
+          "py-2",
+          "rounded-3",
+          "mb-1",
+          isActive ? "active bg-warning text-dark" : "text-light sidebar-link",
+        ].join(" ")
+      }
+    >
+      <span className="d-flex align-items-center gap-2 w-100">
+        <span className="sidebar-icon d-inline-flex align-items-center justify-content-center rounded-3 flex-shrink-0">
+          <i className={`bi ${icon}`} />
+        </span>
+
+        {!collapsed ? (
+          <span className="fw-medium text-truncate" style={{ maxWidth: 160 }}>
+            {label}
+          </span>
+        ) : null}
+      </span>
+    </NavLink>
   );
 }
 
-function IconUser() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" className="superadmin-action-icon">
-      <path
-        d="M12 12a4 4 0 1 0-4-4a4 4 0 0 0 4 4m0 2c-3.33 0-6 1.79-6 4v2h12v-2c0-2.21-2.67-4-6-4"
-        fill="currentColor"
-      />
-    </svg>
-  );
-}
+function ConfirmModal({ open, title, message, confirmText, loading, onCancel, onConfirm }) {
+  if (!open) {
+    return null;
+  }
 
-function IconClose() {
   return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" className="superadmin-action-icon">
-      <path
-        d="m18.3 5.71l-1.41-1.42L12 9.17L7.11 4.29L5.7 5.71L10.59 10.6L5.7 15.49l1.41 1.42L12 12.01l4.89 4.9l1.41-1.42l-4.89-4.89z"
-        fill="currentColor"
-      />
-    </svg>
+    <>
+      <div className="modal fade show" style={{ display: "block" }} aria-modal="true" role="dialog">
+        <div className="modal-dialog modal-dialog-centered">
+          <div className="modal-content border-0 shadow">
+            <div className="modal-header">
+              <h5 className="modal-title">{title}</h5>
+              <button type="button" className="btn-close" onClick={onCancel} disabled={loading} />
+            </div>
+
+            <div className="modal-body">
+              <p className="mb-0">{message}</p>
+            </div>
+
+            <div className="modal-footer">
+              <button className="btn btn-outline-secondary" onClick={onCancel} disabled={loading}>
+                Annuler
+              </button>
+              <button className="btn btn-danger" onClick={onConfirm} disabled={loading}>
+                {loading ? "Deconnexion..." : confirmText}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="modal-backdrop fade show" onClick={loading ? undefined : onCancel} />
+    </>
   );
 }
 
 export default function AdminLayout() {
+  const { lang, setLang, supported } = useI18n();
+  const { isAuth, logout, roles, user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, logout } = useAuth();
-  const { locale, setLocale } = useI18n();
-  const [isDesktop, setIsDesktop] = useState(isDesktopViewport);
-  const [desktopSidebarVisible, setDesktopSidebarVisible] = useState(true);
-  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
-  const [langOpen, setLangOpen] = useState(false);
 
-  const currentSection = useMemo(() => getSection(location.pathname), [location.pathname]);
-  const sidebarVisible = isDesktop ? desktopSidebarVisible : mobileSidebarOpen;
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
+  const [logoutOpen, setLogoutOpen] = useState(false);
+  const [logoutLoading, setLogoutLoading] = useState(false);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
 
-  useEffect(() => {
-    setLangOpen(false);
-
-    if (!isDesktop) {
-      setMobileSidebarOpen(false);
-    }
-  }, [isDesktop, location.pathname]);
+  const navigation = useMemo(() => buildNavigation(roles), [roles]);
+  const sidebarWidth = useMemo(() => (collapsed ? 84 : 280), [collapsed]);
+  const headerAvatar = buildAvatarUrl(user?.avatar);
+  const defaultPath = resolveDefaultPath(user, roles);
+  const isPlatform = roles.includes("platform-super-admin");
 
   useEffect(() => {
-    function handleResize() {
-      setIsDesktop(isDesktopViewport());
-    }
-
-    window.addEventListener("resize", handleResize);
-
-    return () => {
-      window.removeEventListener("resize", handleResize);
+    const onKeyDown = (event) => {
+      if (event.key === "Escape") {
+        setDrawerOpen(false);
+        setLogoutOpen(false);
+        setNotificationsOpen(false);
+      }
     };
+
+    window.addEventListener("keydown", onKeyDown);
+
+    return () => window.removeEventListener("keydown", onKeyDown);
   }, []);
 
   useEffect(() => {
-    document.body.style.overflow = !isDesktop && mobileSidebarOpen ? "hidden" : "";
+    if (!isAuth) {
+      return;
+    }
+
+    if (isPlatform && location.pathname.startsWith("/super-admin")) {
+      return;
+    }
+
+    if (!isPlatform && location.pathname.startsWith("/tenant")) {
+      return;
+    }
+
+    navigate(defaultPath, { replace: true });
+  }, [defaultPath, isAuth, isPlatform, location.pathname, navigate]);
+
+  useEffect(() => {
+    const lockScroll = drawerOpen || logoutOpen;
+    document.body.style.overflow = lockScroll ? "hidden" : "";
 
     return () => {
       document.body.style.overflow = "";
     };
-  }, [isDesktop, mobileSidebarOpen]);
+  }, [drawerOpen, logoutOpen]);
 
   useEffect(() => {
-    function handleKeyDown(event) {
-      if (event.key === "Escape") {
-        setMobileSidebarOpen(false);
-        setLangOpen(false);
-      }
+    setDrawerOpen(false);
+    setNotificationsOpen(false);
+  }, [location.pathname]);
+
+  function handleAction(action) {
+    if (action === "logout") {
+      setLogoutOpen(true);
     }
-
-    window.addEventListener("keydown", handleKeyDown);
-
-    return () => {
-      window.removeEventListener("keydown", handleKeyDown);
-    };
-  }, []);
-
-  function toggleSidebar() {
-    if (isDesktop) {
-      setDesktopSidebarVisible((current) => !current);
-      return;
-    }
-
-    setMobileSidebarOpen((current) => !current);
   }
 
-  function closeSidebar() {
-    if (isDesktop) {
-      setDesktopSidebarVisible(false);
-      return;
+  async function confirmLogout() {
+    setLogoutLoading(true);
+
+    try {
+      logout();
+      setLogoutOpen(false);
+      navigate("/login", { replace: true });
+    } finally {
+      setLogoutLoading(false);
     }
-
-    setMobileSidebarOpen(false);
-  }
-
-  function handleLogout() {
-    logout();
-    navigate("/login", { replace: true });
   }
 
   return (
-    <div className={`superadmin-shell ${sidebarVisible ? "sidebar-open" : "sidebar-collapsed"}`}>
-      <div
-        className={`superadmin-backdrop ${!isDesktop && mobileSidebarOpen ? "is-visible" : ""}`}
-        onClick={closeSidebar}
-      />
-
-      <aside className={`superadmin-sidebar ${sidebarVisible ? "is-open" : ""}`}>
-        <div className="superadmin-sidebar__head">
-          <div className="superadmin-sidebar__brand">
-            <span className="superadmin-sidebar__eyebrow">Pointages</span>
-            <strong>Super Admin</strong>
-            <p>Pilotage plateforme, onboarding client et facturation.</p>
+    <div className="admin-page" style={{ "--admin-sidebar-width": `${sidebarWidth}px` }}>
+      <div className="admin-shell">
+        <aside className="sidebar desktop d-none d-lg-flex flex-column p-3" style={{ width: sidebarWidth }}>
+          <div className="d-flex align-items-center justify-content-between mb-3">
+            <div className="sidebar-header d-flex align-items-center gap-2">
+              <img src="/images/logo/check-in.png" alt="Pointages" className="admin-brand-icon" />
+              {!collapsed ? <div className="fw-bold text-warning fs-5">Pointages</div> : null}
+            </div>
           </div>
 
-          <button
-            type="button"
-            className="superadmin-sidebar__close"
-            aria-label="Fermer le menu"
-            onClick={closeSidebar}
-          >
-            <IconClose />
-          </button>
-        </div>
+          <nav className="mt-2 sidebar-nav">
+            {navigation.map((item) => (
+              <SidebarItem
+                key={item.to ?? item.action}
+                item={item}
+                collapsed={collapsed}
+                onAction={handleAction}
+              />
+            ))}
+          </nav>
 
-        <nav className="superadmin-nav" aria-label="Navigation super admin">
-          {NAV_ITEMS.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              className={({ isActive }) => `superadmin-nav__link ${isActive ? "is-active" : ""}`}
-            >
-              <span>{item.label}</span>
-              <small>{item.hint}</small>
-            </NavLink>
-          ))}
-        </nav>
-
-        <div className="superadmin-sidebar__footer">
-          <div className="superadmin-session-card">
-            <span>Connecte</span>
-            <strong>{user?.name ?? "Super Admin"}</strong>
-            <small>{user?.email ?? "-"}</small>
-          </div>
-
-          <button type="button" className="btn btn-danger w-100 superadmin-logout-btn" onClick={handleLogout}>
-            Se deconnecter
-          </button>
-        </div>
-      </aside>
-
-      <div className="superadmin-main">
-        <header className="superadmin-header">
-          <div className="superadmin-header__topbar">
+          <div className="mt-auto pt-3 border-top border-secondary sidebar-footer">
             <button
               type="button"
-              className="btn btn-outline-light superadmin-menu-btn"
-              onClick={toggleSidebar}
-              aria-label={sidebarVisible ? "Masquer le menu" : "Afficher le menu"}
+              className={`btn btn-outline-light w-100 d-flex align-items-center justify-content-center gap-2 ${
+                collapsed ? "px-2" : ""
+              }`}
+              onClick={() => handleAction("logout")}
+              title={collapsed ? "Deconnexion" : undefined}
             >
-              <IconMenu />
-              <span>Menu</span>
+              {!collapsed ? <span> <i className="bi bi-box-arrow-right me-2" />Deconnexion</span> : null}
             </button>
+          </div>
+        </aside>
 
-            <div className="superadmin-header__status">
-              <span className="superadmin-header__status-label">Session</span>
-              <strong>{user?.is_super_admin ? "Super Admin" : "Compte plateforme"}</strong>
-            </div>
+        {drawerOpen ? <div className="drawer-overlay" onClick={() => setDrawerOpen(false)} /> : null}
 
-            <div className="superadmin-header__toolbar">
-              <div className="superadmin-lang-switch">
-                <button
-                  type="button"
-                  className="superadmin-icon-btn"
-                  aria-label="Changer la langue"
-                  onClick={() => setLangOpen((current) => !current)}
-                >
-                  <IconGlobe />
-                  <span className="superadmin-icon-btn__label">{locale.toUpperCase()}</span>
-                </button>
-
-                {langOpen ? (
-                  <div className="superadmin-lang-menu">
-                    {LOCALES.map((item) => (
-                      <button
-                        key={item.code}
-                        type="button"
-                        className={`superadmin-lang-menu__item ${locale === item.code ? "is-active" : ""}`}
-                        onClick={() => {
-                          setLocale(item.code);
-                          setLangOpen(false);
-                        }}
-                      >
-                        <span>{item.label}</span>
-                        <small>{item.code}</small>
-                      </button>
-                    ))}
-                  </div>
-                ) : null}
+        <aside className={`sidebar-drawer d-lg-none ${drawerOpen ? "open" : ""}`}>
+          <div className="p-3 sidebar-drawer-inner d-flex flex-column">
+            <div className="d-flex align-items-start justify-content-between mb-3">
+              <div className="d-flex align-items-center gap-2">
+                <img src="/images/logo/check-in.png" alt="Pointages" className="admin-brand-icon" />
+                <div className="fw-bold text-warning fs-5">Pointages</div>
               </div>
 
+              <button className="btn btn-sm btn-outline-light" type="button" onClick={() => setDrawerOpen(false)}>
+                <i className="bi bi-x-lg" />
+              </button>
+            </div>
+
+            <nav className="mt-2 sidebar-nav">
+              {navigation.map((item) => (
+                <SidebarItem
+                  key={item.to ?? item.action}
+                  item={item}
+                  collapsed={false}
+                  onAction={handleAction}
+                />
+              ))}
+            </nav>
+
+            <div className="mt-auto pt-3 border-top border-secondary sidebar-footer">
               <button
                 type="button"
-                className="superadmin-icon-btn superadmin-account-btn"
-                aria-label="Compte utilisateur"
+                className="btn btn-outline-light w-100 d-flex align-items-center justify-content-center gap-2"
+                onClick={() => handleAction("logout")}
               >
-                <IconUser />
-                <span className="superadmin-icon-btn__label">
-                  {user?.name?.split(" ")[0] ?? "Compte"}
-                </span>
+                <i className="bi bi-box-arrow-right" />
+                <span>Deconnexion</span>
               </button>
             </div>
           </div>
+        </aside>
 
-          <div className="superadmin-header__body">
-            <div className="superadmin-header__copy">
-              <span className="superadmin-header__kicker">Plateforme SaaS</span>
-              <h1>{currentSection?.label ?? "Super Admin"}</h1>
-              <p>
-                Console dediee au super-admin pour gerer tenants, offres, abonnements et billing.
-              </p>
-            </div>
+        <div className="admin-content">
+          <header className="bg-white border-bottom">
+            <div className="container-fluid py-3 px-3 px-md-4">
+              <div className="d-flex align-items-center justify-content-between gap-2 flex-nowrap admin-header-line">
+                <div className="d-flex align-items-center gap-2 flex-nowrap admin-header-primary">
+                    <button
+                      className="btn btn-outline-dark btn-sm d-lg-none"
+                      type="button"
+                      onClick={() => setDrawerOpen(true)}
+                    >
+                      <i className="bi bi-list" />
+                    </button>
 
-            <div className="superadmin-header__panel">
-              <div className="superadmin-header__identity">
-                <span>Compte actif</span>
-                <strong>{user?.email ?? "-"}</strong>
+                    <button
+                      className="btn btn-outline-dark btn-sm d-none d-lg-inline-flex"
+                      type="button"
+                      onClick={() => setCollapsed((value) => !value)}
+                      title={collapsed ? "Etendre le menu" : "Reduire le menu"}
+                    >
+                      <i className={`bi ${collapsed ? "bi-layout-sidebar-inset" : "bi-layout-sidebar"}`} />
+                    </button>
+
+                    <span className="fw-semibold d-none d-sm-inline">Dashboard</span>
+                    <span className="badge bg-warning text-dark d-none d-md-inline-flex">
+                      {isPlatform ? "Super admin" : "Tenant"}
+                    </span>
+                </div>
+
+                <div className="d-flex align-items-center justify-content-end gap-2 position-relative flex-nowrap admin-header-actions">
+                    <div className="position-relative admin-notifications">
+                      <button
+                        className="btn btn-outline-dark btn-sm position-relative"
+                        type="button"
+                        onClick={() => setNotificationsOpen((value) => !value)}
+                      >
+                        <i className="bi bi-bell" />
+                      </button>
+
+                      {notificationsOpen ? (
+                        <div
+                          className="position-absolute end-0 mt-2 bg-white border rounded-4 shadow-sm admin-notifications__panel"
+                          style={{ zIndex: 1050 }}
+                        >
+                          <div className="p-3 border-bottom">
+                            <div className="fw-semibold">Notifications</div>
+                            <div className="small text-secondary">Aucune notification disponible.</div>
+                          </div>
+                        </div>
+                      ) : null}
+                    </div>
+
+                    <div className="dropdown">
+                      <button
+                        className="btn btn-outline-dark btn-sm dropdown-toggle admin-lang-btn"
+                        type="button"
+                        data-bs-toggle="dropdown"
+                        aria-expanded="false"
+                        title="Langue"
+                      >
+                        <i className="bi bi-translate" />
+                        <span className="d-none d-md-inline ms-2">{lang.toUpperCase()}</span>
+                      </button>
+
+                      <ul className="dropdown-menu dropdown-menu-end">
+                        {supported.map((value) => (
+                          <li key={value}>
+                            <button
+                              className={`dropdown-item ${lang === value ? "active" : ""}`}
+                              onClick={() => setLang(value)}
+                              type="button"
+                            >
+                              {value.toUpperCase()}
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+
+                    <button
+                      className="btn btn-warning btn-sm d-inline-flex align-items-center gap-2 admin-account-btn"
+                      type="button"
+                      onClick={() => navigate(defaultPath)}
+                    >
+                      {headerAvatar ? (
+                        <span className="admin-header-avatar">
+                          <img src={headerAvatar} alt={user?.name || "Profil"} />
+                        </span>
+                      ) : (
+                        <span className="admin-header-avatar admin-header-avatar--fallback">
+                          {(user?.name || "U").slice(0, 1).toUpperCase()}
+                        </span>
+                      )}
+                      <span className="admin-account-label d-none d-md-inline">
+                        {user?.name || "Mon compte"}
+                      </span>
+                    </button>
+                </div>
               </div>
+            </div>
+          </header>
 
-              <div className="superadmin-header__current">
-                <span>Section</span>
-                <strong>{currentSection?.hint ?? "Navigation plateforme"}</strong>
+          <main className="container-fluid py-3 py-md-5 px-3 px-md-4 admin-main">
+            <Outlet />
+          </main>
+
+          <footer className="admin-footer">
+            <div className="container-fluid py-3 px-3 px-md-4 d-flex flex-column flex-md-row gap-2 align-items-md-center justify-content-between">
+              <div className="text-muted small">
+                {new Date().getFullYear()} Pointages Admin Dashboard
+              </div>
+              <div className="text-muted small d-flex gap-3">
+                <span>Securise</span>
+                <span>Performance</span>
               </div>
             </div>
-          </div>
-
-          <nav className="superadmin-header__mobile-nav" aria-label="Navigation rapide">
-            {NAV_ITEMS.map((item) => (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                className={({ isActive }) =>
-                  `superadmin-header__mobile-link ${isActive ? "is-active" : ""}`
-                }
-              >
-                {item.label}
-              </NavLink>
-            ))}
-          </nav>
-        </header>
-
-        <main className="superadmin-content">
-          <Outlet />
-        </main>
+          </footer>
+        </div>
       </div>
+
+      <ConfirmModal
+        open={logoutOpen}
+        title="Deconnexion"
+        message="Voulez-vous vraiment vous deconnecter ?"
+        confirmText="Oui, se deconnecter"
+        loading={logoutLoading}
+        onCancel={() => setLogoutOpen(false)}
+        onConfirm={confirmLogout}
+      />
     </div>
   );
 }

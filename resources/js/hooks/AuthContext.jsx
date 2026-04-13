@@ -1,126 +1,142 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
-import { authApi, setAuthToken } from "../api/axios";
-import { getRoleCodes, isSuperAdminUser } from "../utils/auth";
-
-const AUTH_STORAGE_KEY = "pointages.auth";
+import { loginApi, meApi } from "../api/auth";
+import { setApiToken } from "../api/axios";
 
 const AuthContext = createContext(null);
 
-function readStoredSession() {
-  if (typeof window === "undefined") {
-    return { token: null, user: null };
-  }
-
+function readStoredUser() {
   try {
-    const raw = window.localStorage.getItem(AUTH_STORAGE_KEY);
-
-    if (!raw) {
-      return { token: null, user: null };
-    }
-
-    const parsed = JSON.parse(raw);
-    return {
-      token: parsed?.token ?? null,
-      user: parsed?.user ?? null,
-    };
+    return JSON.parse(localStorage.getItem("user") || "null");
   } catch {
-    return { token: null, user: null };
+    return null;
   }
 }
 
-function persistSession(session) {
-  if (typeof window === "undefined") {
-    return;
+function extractRoles(user) {
+  const roleCodes = Array.isArray(user?.roles)
+    ? user.roles.map((role) => role?.code).filter(Boolean)
+    : [];
+
+  if (user?.is_super_admin && !roleCodes.includes("platform-super-admin")) {
+    roleCodes.unshift("platform-super-admin");
   }
 
-  if (!session?.token) {
-    window.localStorage.removeItem(AUTH_STORAGE_KEY);
-    return;
+  return roleCodes;
+}
+
+function persistAuth(token, user) {
+  if (token) {
+    localStorage.setItem("token", token);
+  } else {
+    localStorage.removeItem("token");
   }
 
-  window.localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(session));
+  if (user) {
+    localStorage.setItem("user", JSON.stringify(user));
+  } else {
+    localStorage.removeItem("user");
+  }
 }
 
 export function AuthProvider({ children }) {
-  const [session, setSession] = useState(() => readStoredSession());
-  const [booting, setBooting] = useState(true);
+  const [token, setToken] = useState(() => localStorage.getItem("token") || "");
+  const [user, setUser] = useState(() => readStoredUser());
+  const [loading, setLoading] = useState(false);
+  const [hydrating, setHydrating] = useState(() => !!localStorage.getItem("token"));
+
+  const isAuth = Boolean(token);
+  const roles = useMemo(() => extractRoles(user), [user]);
 
   useEffect(() => {
-    const token = session?.token ?? null;
-    setAuthToken(token);
-    persistSession(session);
-  }, [session]);
+    setApiToken(token);
+  }, [token]);
 
   useEffect(() => {
-    let active = true;
+    let cancelled = false;
 
-    async function hydrateSession() {
-      const stored = readStoredSession();
-
-      if (!stored.token) {
-        if (active) {
-          setBooting(false);
-        }
+    async function hydrate() {
+      if (!token) {
+        setHydrating(false);
         return;
       }
 
-      setAuthToken(stored.token);
-
       try {
-        const user = await authApi.me();
+        const nextUser = await meApi();
 
-        if (!active) {
-          return;
+        if (!cancelled) {
+          setUser(nextUser || null);
+          persistAuth(token, nextUser || null);
         }
-
-        setSession({
-          token: stored.token,
-          user,
-        });
       } catch {
-        if (!active) {
-          return;
+        if (!cancelled) {
+          setToken("");
+          setUser(null);
+          persistAuth("", null);
         }
-
-        setAuthToken(null);
-        setSession({ token: null, user: null });
       } finally {
-        if (active) {
-          setBooting(false);
+        if (!cancelled) {
+          setHydrating(false);
         }
       }
     }
 
-    hydrateSession();
+    hydrate();
 
     return () => {
-      active = false;
+      cancelled = true;
     };
-  }, []);
+  }, [token]);
 
-  const value = useMemo(() => {
-    async function login(credentials) {
-      const authenticated = await authApi.login(credentials);
-      setSession(authenticated);
-      return authenticated.user;
+  async function login(credentials) {
+    setLoading(true);
+
+    try {
+      const data = await loginApi(credentials);
+      const nextToken = data?.token || "";
+      const nextUser = data?.user || null;
+
+      setToken(nextToken);
+      setUser(nextUser);
+      persistAuth(nextToken, nextUser);
+
+      return {
+        ok: true,
+        user: nextUser,
+        roles: extractRoles(nextUser),
+      };
+    } catch (error) {
+      return {
+        ok: false,
+        message: error?.response?.data?.message || "Connexion impossible.",
+        errors: error?.response?.data?.errors || {},
+      };
+    } finally {
+      setLoading(false);
     }
+  }
 
-    function logout() {
-      setAuthToken(null);
-      setSession({ token: null, user: null });
-    }
+  function logout() {
+    setToken("");
+    setUser(null);
+    setHydrating(false);
+    persistAuth("", null);
+    setApiToken("");
+  }
 
-    return {
-      token: session?.token ?? null,
-      user: session?.user ?? null,
-      roleCodes: getRoleCodes(session?.user),
-      isAuthenticated: Boolean(session?.token),
-      isSuperAdmin: isSuperAdminUser(session?.user),
-      booting,
+  const value = useMemo(
+    () => ({
+      user,
+      token,
+      roles,
+      isAuth,
+      loading,
+      hydrating,
       login,
       logout,
-    };
-  }, [booting, session]);
+      hasRole: (role) => roles.includes(role),
+    }),
+    [user, token, roles, isAuth, loading, hydrating]
+  );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
@@ -129,7 +145,7 @@ export function useAuth() {
   const context = useContext(AuthContext);
 
   if (!context) {
-    throw new Error("useAuth must be used within an AuthProvider.");
+    throw new Error("useAuth must be used within AuthProvider.");
   }
 
   return context;
